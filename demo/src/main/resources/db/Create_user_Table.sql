@@ -1,3 +1,4 @@
+
 CREATE TABLE IF NOT EXISTS public.user
 (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -15,5 +16,3 @@ ALTER TABLE public.user
 alter table public.user add account_status character varying(15) NOT NULL;
 
 alter table public.user add age character varying(3) not null ;
-
-drop table public.user;

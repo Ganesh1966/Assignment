@@ -19,10 +19,6 @@ plugins {
 	id "org.flywaydb.flyway" version "8.5.10"
 }
 
-group = 'com.dataclog'
-version = '0.0.1'
-sourceCompatibility = '11'
-
 repositories {
 	mavenCentral()
 }
@@ -58,7 +54,6 @@ import org.jooq.meta.jaxb.Generator
 import org.jooq.meta.jaxb.Jdbc
 import org.jooq.meta.jaxb.Target
 import io.github.cdimascio.dotenv.Dotenv
-import org.flywaydb.core.Flyway;
 
 
 import static java.util.Optional.ofNullable;
@@ -84,11 +79,6 @@ task generateCode() {
 			.filename(".env")
 			.load();
 
-	printf('*****')
-	printf('***')
-	printf(dotenv.get('POSTGRES_URL'))
-	printf(dotenv.get('POSTGRES_USERNAME'))
-	printf('*****')
 	if(ofNullable(dotenv.get("POSTGRES_URL")).isPresent()) {
 		org.jooq.meta.jaxb.Configuration configuration = new org.jooq.meta.jaxb.Configuration()
 				.withJdbc(new Jdbc()
