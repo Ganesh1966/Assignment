@@ -1,0 +1,117 @@
+buildscript {
+	repositories {
+		mavenLocal()
+		mavenCentral()
+	}
+
+	dependencies {
+		classpath 'org.jooq:jooq-codegen:3.16.5'
+		classpath 'org.postgresql:postgresql:42.3.4'
+		classpath 'io.github.cdimascio:dotenv-java:2.2.3'
+	}
+}
+
+plugins {
+	id 'org.springframework.boot' version '2.6.6'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'java'
+	id 'com.github.johnrengelman.shadow' version '7.1.2'
+	id "org.flywaydb.flyway" version "8.5.10"
+}
+
+group = 'com.dataclog'
+version = '0.0.1'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	implementation 'org.postgresql:postgresql:42.3.4'
+	implementation 'org.jooq:jooq:3.16.5'
+	implementation 'org.jooq:jooq-meta:3.16.5'
+	implementation 'org.jooq:jooq-codegen:3.16.5'
+	implementation 'io.github.cdimascio:dotenv-java:2.2.3'
+	implementation 'com.google.guava:guava:31.1-jre'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+jar {
+	manifest {
+		attributes(
+				'Main-Class': 'com.example.demo.ProjectApplication',
+		)
+	}
+}
+
+import org.jooq.codegen.GenerationTool
+import org.jooq.meta.jaxb.Database
+import org.jooq.meta.jaxb.Generator
+import org.jooq.meta.jaxb.Jdbc
+import org.jooq.meta.jaxb.Target
+import io.github.cdimascio.dotenv.Dotenv
+import org.flywaydb.core.Flyway;
+
+
+import static java.util.Optional.ofNullable;
+
+ext.db = [
+		schema     : 'public',
+		driver     : 'org.postgresql.Driver',
+		jooqDbImpl : 'org.jooq.meta.postgres.PostgresDatabase',
+		packageName: 'com.example.demo.db.jooqs'
+]
+
+
+
+ext.genpath = new File("${projectDir}/build/generated/sources/jooq/main")
+
+sourceSets.main.java.srcDirs += genpath.toString()
+task generateCode() {
+	if (!genpath.exists()) {
+		genpath.mkdirs()
+	}
+	Dotenv dotenv = Dotenv.configure()
+			.directory("${projectDir}/src/main/resources")
+			.filename(".env")
+			.load();
+
+	printf('*****')
+	printf('***')
+	printf(dotenv.get('POSTGRES_URL'))
+	printf(dotenv.get('POSTGRES_USERNAME'))
+	printf('*****')
+	if(ofNullable(dotenv.get("POSTGRES_URL")).isPresent()) {
+		org.jooq.meta.jaxb.Configuration configuration = new org.jooq.meta.jaxb.Configuration()
+				.withJdbc(new Jdbc()
+						.withDriver(db.driver)
+						.withUrl(dotenv.get('POSTGRES_URL'))
+						.withUser(dotenv.get('POSTGRES_USERNAME'))
+						.withPassword(dotenv.get('POSTGRES_PASSWORD'))
+				)
+				.withGenerator(new Generator()
+						.withDatabase(new Database()
+								.withName(db.jooqDbImpl)
+								.withIncludes(".*")
+								.withExcludes("")
+								.withInputSchema(db.schema)
+						)
+						.withTarget(new Target()
+								.withPackageName(db.packageName)
+								.withDirectory(genpath.toString())
+						)
+				);
+		GenerationTool.generate(configuration);
+	}
+}
+task deleteGeneratedCode(type: Delete) {
+	delete genpath
+}
